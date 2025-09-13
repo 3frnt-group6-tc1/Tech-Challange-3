@@ -76,23 +76,6 @@ const ProfileScreen = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-        <Card style={styles.statsCard}>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: theme.colors.primary }]}>12</Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
-                Transações
-              </Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: theme.colors.success }]}>R$ 2.540</Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
-                Economia
-              </Text>
-            </View>
-          </View>
-        </Card>
 
         <Card>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>

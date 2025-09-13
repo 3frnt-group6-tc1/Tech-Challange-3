@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,13 +12,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import TransactionModal from '../components/TransactionModal';
 
 const HomeScreen = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [transactions, setTransactions] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalType, setModalType] = useState('income');
 
-  const onRefresh = React.useCallback(() => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1000);
   }, []);
@@ -27,6 +31,19 @@ const HomeScreen = () => {
     if (!email) return 'Usuário';
     const name = email.split('@')[0];
     return name.charAt(0).toUpperCase() + name.slice(1);
+  };
+
+  const incomeTotal = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+  const expenseTotal = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+  const balanceTotal = incomeTotal - expenseTotal;
+
+  const handleAddPress = (type) => {
+    setModalType(type);
+    setModalVisible(true);
+  };
+
+  const handleSaveTransaction = (newTransaction) => {
+    setTransactions([newTransaction, ...transactions]);
   };
 
   return (
@@ -68,11 +85,9 @@ const HomeScreen = () => {
             Saldo Total
           </Text>
           <Text style={[styles.balance, { color: theme.colors.text }]}>
-            R$ 2.540,80
+            R$ {balanceTotal.toFixed(2)}
           </Text>
-          <Text style={[styles.balanceChange, { color: theme.colors.success }]}>
-            +12.5% este mês
-          </Text>
+
         </Card>
 
         <View style={styles.summaryRow}>
@@ -81,7 +96,7 @@ const HomeScreen = () => {
               Receitas
             </Text>
             <Text style={[styles.summaryAmount, { color: theme.colors.success }]}>
-              R$ 3.200,00
+              R$ {incomeTotal.toFixed(2)}
             </Text>
           </Card>
           
@@ -90,7 +105,7 @@ const HomeScreen = () => {
               Despesas
             </Text>
             <Text style={[styles.summaryAmount, { color: theme.colors.error }]}>
-              R$ 659,20
+              R$ {expenseTotal.toFixed(2)}
             </Text>
           </Card>
         </View>
@@ -100,14 +115,14 @@ const HomeScreen = () => {
             title="Adicionar Receita"
             variant="success"
             style={styles.actionButton}
-            onPress={() => {}}
+            onPress={() => handleAddPress('income')}
           />
           
           <Button
             title="Adicionar Despesa"
             variant="danger"
             style={styles.actionButton}
-            onPress={() => {}}
+            onPress={() => handleAddPress('expense')}
           />
         </View>
 
@@ -124,32 +139,32 @@ const HomeScreen = () => {
           </View>
           
           <View style={styles.transactionsList}>
-            <TransactionItem
-              title="Salário"
-              category="Trabalho"
-              amount="+ R$ 3.200,00"
-              date="Hoje"
-              type="income"
-              theme={theme}
-            />
-            <TransactionItem
-              title="Supermercado"
-              category="Alimentação"
-              amount="- R$ 127,50"
-              date="Ontem"
-              type="expense"
-              theme={theme}
-            />
-            <TransactionItem
-              title="Combustível"
-              category="Transporte"
-              amount="- R$ 95,00"
-              date="2 dias atrás"
-              type="expense"
-              theme={theme}
-            />
+{transactions.length === 0 ? (
+              <Text style={{ color: theme.colors.textSecondary, textAlign: 'center' }}>
+                Nenhuma transação ainda
+              </Text>
+            ) : (
+              transactions.map((t, idx) => (
+                <TransactionItem
+                  key={idx}
+                  title={t.title}
+                  category={t.category}
+                  amount={`${t.type === 'income' ? '+ ' : '- '}R$ ${t.amount.toFixed(2)}`}
+                  date={t.date}
+                  type={t.type}
+                  theme={theme}
+                />
+              ))
+            )}
           </View>
         </Card>
+
+        <TransactionModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          onSave={handleSaveTransaction}
+          type={modalType}
+        />
         </ScrollView>
       </View>
     </View>
