@@ -10,15 +10,16 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTransactions } from '../contexts/TransactionsContext';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import TransactionModal from '../components/TransactionModal';
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }) => {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { transactions, addTransaction, getTotalByType, getBalance } = useTransactions();
   const [refreshing, setRefreshing] = useState(false);
-  const [transactions, setTransactions] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState('income');
 
@@ -33,9 +34,9 @@ const HomeScreen = () => {
     return name.charAt(0).toUpperCase() + name.slice(1);
   };
 
-  const incomeTotal = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-  const expenseTotal = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-  const balanceTotal = incomeTotal - expenseTotal;
+  const incomeTotal = getTotalByType('income');
+  const expenseTotal = getTotalByType('expense');
+  const balanceTotal = getBalance();
 
   const handleAddPress = (type) => {
     setModalType(type);
@@ -43,7 +44,7 @@ const HomeScreen = () => {
   };
 
   const handleSaveTransaction = (newTransaction) => {
-    setTransactions([newTransaction, ...transactions]);
+    addTransaction(newTransaction);
   };
 
   return (
@@ -131,7 +132,7 @@ const HomeScreen = () => {
             <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
               Transações Recentes
             </Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Transactions')}>
               <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>
                 Ver todas
               </Text>

@@ -6,12 +6,14 @@ import { Text, StatusBar } from 'react-native';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { TransactionsProvider } from './contexts/TransactionsContext';
 
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import HomeScreen from './screens/HomeScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import TransactionsScreen from './screens/TransactionsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -33,64 +35,81 @@ const MainTabs = () => {
   const { theme } = useTheme();
   
   return (
-    <Tab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.border,
-          paddingBottom: 5,
-          height: 85,
-        },
-        headerStyle: {
-          backgroundColor: theme.colors.surface,
-          shadowColor: theme.colors.shadow,
-          elevation: 0,
-        },
-        headerTintColor: theme.colors.text,
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          fontSize: 18,
-        },
-      }}
-    >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeScreen}
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="MainTabs" 
+        options={{ headerShown: false }}
+      >
+        {() => (
+          <Tab.Navigator
+            screenOptions={{
+              tabBarActiveTintColor: theme.colors.primary,
+              tabBarInactiveTintColor: theme.colors.textSecondary,
+              tabBarStyle: {
+                backgroundColor: theme.colors.surface,
+                borderTopColor: theme.colors.border,
+                paddingBottom: 5,
+                height: 85,
+              },
+              headerStyle: {
+                backgroundColor: theme.colors.surface,
+                shadowColor: theme.colors.shadow,
+                elevation: 0,
+              },
+              headerTintColor: theme.colors.text,
+              headerTitleStyle: {
+                fontWeight: 'bold',
+                fontSize: 18,
+              },
+            }}
+          >
+            <Tab.Screen 
+              name="Home" 
+              component={HomeScreen}
+              options={{
+                title: 'Início',
+                tabBarLabel: 'Início',
+                tabBarIcon: ({ color }) => (
+                  <Text style={{ color, fontSize: 22 }}>🏠</Text>
+                ),
+                headerShown: false,
+              }}
+            />
+            <Tab.Screen 
+              name="Profile" 
+              component={ProfileScreen}
+              options={{
+                title: 'Perfil',
+                tabBarLabel: 'Perfil',
+                tabBarIcon: ({ color }) => (
+                  <Text style={{ color, fontSize: 22 }}>👤</Text>
+                ),
+                headerShown: false,
+              }}
+            />
+            <Tab.Screen 
+              name="Settings" 
+              component={SettingsScreen}
+              options={{
+                title: 'Configurações',
+                tabBarLabel: 'Config',
+                tabBarIcon: ({ color }) => (
+                  <Text style={{ color, fontSize: 22 }}>⚙️</Text>
+                ),
+              }}
+            />
+          </Tab.Navigator>
+        )}
+      </Stack.Screen>
+      <Stack.Screen 
+        name="Transactions" 
+        component={TransactionsScreen}
         options={{
-          title: 'Início',
-          tabBarLabel: 'Início',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 22 }}>🏠</Text>
-          ),
           headerShown: false,
+          presentation: 'modal',
         }}
       />
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen}
-        options={{
-          title: 'Perfil',
-          tabBarLabel: 'Perfil',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 22 }}>👤</Text>
-          ),
-          headerShown: false,
-        }}
-      />
-      <Tab.Screen 
-        name="Settings" 
-        component={SettingsScreen}
-        options={{
-          title: 'Configurações',
-          tabBarLabel: 'Config',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 22 }}>⚙️</Text>
-          ),
-        }}
-      />
-    </Tab.Navigator>
+    </Stack.Navigator>
   );
 };
 
@@ -119,7 +138,9 @@ const App = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppNavigator />
+        <TransactionsProvider>
+          <AppNavigator />
+        </TransactionsProvider>
       </AuthProvider>
     </ThemeProvider>
   );
