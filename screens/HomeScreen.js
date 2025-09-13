@@ -8,12 +8,18 @@ import {
   RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { 
+  FadeIn,
+  FadeInDown,
+  FadeInUp
+} from 'react-native-reanimated';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTransactions } from '../contexts/TransactionsContext';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import TransactionModal from '../components/TransactionModal';
+import UnifiedTransactionModal from '../components/UnifiedTransactionModal';
+import { formatDate } from '../utils/dateFormatter';
 
 const HomeScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -33,6 +39,7 @@ const HomeScreen = ({ navigation }) => {
     const name = email.split('@')[0];
     return name.charAt(0).toUpperCase() + name.slice(1);
   };
+
 
   const incomeTotal = getTotalByType('income');
   const expenseTotal = getTotalByType('expense');
@@ -81,17 +88,40 @@ const HomeScreen = ({ navigation }) => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-        <Card style={styles.balanceCard}>
-          <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>
-            Saldo Total
-          </Text>
-          <Text style={[styles.balance, { color: theme.colors.text }]}>
-            R$ {balanceTotal.toFixed(2)}
-          </Text>
+        <Animated.View entering={FadeInDown.delay(100).duration(600)}>
+          <Card style={styles.balanceCard}>
+            <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>
+              Saldo Total
+            </Text>
+            <Text style={[styles.balance, { color: theme.colors.text }]}>
+              R$ {balanceTotal.toFixed(2)}
+            </Text>
+          </Card>
+        </Animated.View>
 
-        </Card>
+        <Animated.View 
+          entering={FadeInUp.delay(150).duration(600)}
+          style={styles.actionsContainer}
+        >
+          <Button
+            title="Adicionar Receita"
+            variant="success"
+            style={styles.actionButton}
+            onPress={() => handleAddPress('income')}
+          />
+          
+          <Button
+            title="Adicionar Despesa"
+            variant="danger"
+            style={styles.actionButton}
+            onPress={() => handleAddPress('expense')}
+          />
+        </Animated.View>
 
-        <View style={styles.summaryRow}>
+        <Animated.View 
+          entering={FadeInUp.delay(200).duration(600)}
+          style={styles.summaryRow}
+        >
           <Card style={styles.summaryCard}>
             <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>
               Receitas
@@ -109,35 +139,22 @@ const HomeScreen = ({ navigation }) => {
               R$ {expenseTotal.toFixed(2)}
             </Text>
           </Card>
-        </View>
+        </Animated.View>
 
-        <View style={styles.actionsContainer}>
-          <Button
-            title="Adicionar Receita"
-            variant="success"
-            style={styles.actionButton}
-            onPress={() => handleAddPress('income')}
-          />
-          
-          <Button
-            title="Adicionar Despesa"
-            variant="danger"
-            style={styles.actionButton}
-            onPress={() => handleAddPress('expense')}
-          />
-        </View>
 
-        <Card>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-              Transações Recentes
-            </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Transactions')}>
-              <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>
-                Ver todas
+
+        <Animated.View entering={FadeIn.delay(300).duration(600)}>
+          <Card>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                Transações Recentes
               </Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity onPress={() => navigation.navigate('Transactions')}>
+                <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>
+                  Ver todas
+                </Text>
+              </TouchableOpacity>
+            </View>
           
           <View style={styles.transactionsList}>
 {transactions.length === 0 ? (
@@ -158,9 +175,10 @@ const HomeScreen = ({ navigation }) => {
               ))
             )}
           </View>
-        </Card>
+          </Card>
+        </Animated.View>
 
-        <TransactionModal
+        <UnifiedTransactionModal
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
           onSave={handleSaveTransaction}
@@ -191,7 +209,7 @@ const TransactionItem = ({ title, category, amount, date, type, theme }) => (
           {title}
         </Text>
         <Text style={[styles.transactionCategory, { color: theme.colors.textSecondary }]}>
-          {category} • {date}
+          {category} • {formatDate(date)}
         </Text>
       </View>
     </View>

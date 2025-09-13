@@ -11,6 +11,7 @@ import { TransactionsProvider } from './contexts/TransactionsContext';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import HomeScreen from './screens/HomeScreen';
+import DashboardScreen from './screens/DashboardScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import TransactionsScreen from './screens/TransactionsScreen';
@@ -71,6 +72,18 @@ const MainTabs = () => {
                 tabBarLabel: 'Início',
                 tabBarIcon: ({ color }) => (
                   <Text style={{ color, fontSize: 22 }}>🏠</Text>
+                ),
+                headerShown: false,
+              }}
+            />
+            <Tab.Screen 
+              name="Dashboard" 
+              component={DashboardScreen}
+              options={{
+                title: 'Dashboard',
+                tabBarLabel: 'Dashboard',
+                tabBarIcon: ({ color }) => (
+                  <Text style={{ color, fontSize: 22 }}>📊</Text>
                 ),
                 headerShown: false,
               }}

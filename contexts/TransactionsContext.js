@@ -16,26 +16,22 @@ export const TransactionsProvider = ({ children }) => {
   const addTransaction = (transaction) => {
     const newTransaction = {
       ...transaction,
-      id: Date.now().toString(), // Gera um ID único baseado no timestamp
-      date: transaction.date || new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
+      id: Date.now().toString(),
+      date: transaction.date || new Date().toISOString().split('T')[0],
     };
     setTransactions(prev => [newTransaction, ...prev]);
   };
 
-  const updateTransaction = (id, updatedTransaction) => {
+  const updateTransaction = (updatedTransaction) => {
     setTransactions(prev => 
       prev.map(transaction => 
-        transaction.id === id ? { ...transaction, ...updatedTransaction } : transaction
+        transaction.id === updatedTransaction.id ? updatedTransaction : transaction
       )
     );
   };
 
   const deleteTransaction = (id) => {
     setTransactions(prev => prev.filter(transaction => transaction.id !== id));
-  };
-
-  const getTransactionsByType = (type) => {
-    return transactions.filter(transaction => transaction.type === type);
   };
 
   const getTotalByType = (type) => {
@@ -55,7 +51,6 @@ export const TransactionsProvider = ({ children }) => {
     addTransaction,
     updateTransaction,
     deleteTransaction,
-    getTransactionsByType,
     getTotalByType,
     getBalance,
   };

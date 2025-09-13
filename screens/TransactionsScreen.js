@@ -10,18 +10,20 @@ import {
   FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTransactions } from '../contexts/TransactionsContext';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import UnifiedTransactionModal from '../components/UnifiedTransactionModal';
+import { formatDate } from '../utils/dateFormatter';
 
 const TransactionsScreen = ({ navigation }) => {
-  const { user } = useAuth();
   const { theme } = useTheme();
-  const { transactions } = useTransactions();
+  const { transactions, updateTransaction, deleteTransaction } = useTransactions();
   const [refreshing, setRefreshing] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
 
   const [filters, setFilters] = useState({
     type: 'all',
@@ -67,6 +69,11 @@ const TransactionsScreen = ({ navigation }) => {
     if (filters.dateRange !== 'all') {
       filtered = filtered.filter(t => {
         const transactionDate = new Date(t.date);
+        
+        if (isNaN(transactionDate.getTime())) {
+          return false;
+        }
+        
         switch (filters.dateRange) {
           case 'today':
             return transactionDate.toDateString() === now.toDateString();
@@ -84,7 +91,23 @@ const TransactionsScreen = ({ navigation }) => {
       });
     }
 
-    return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      
+      if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+        return dateB - dateA;
+      }
+      
+      if (!isNaN(dateA.getTime()) && isNaN(dateB.getTime())) {
+        return -1;
+      }
+      if (isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+        return 1;
+      }
+      
+      return 0;
+    });
   };
 
   const filteredTransactions = getFilteredTransactions();
@@ -100,10 +123,6 @@ const TransactionsScreen = ({ navigation }) => {
 
   const categories = ['all', ...new Set(transactions.map(t => t.category))];
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
-  };
 
   const getTypeLabel = (type) => {
     return type === 'income' ? 'Receita' : 'Despesa';
@@ -131,6 +150,26 @@ const TransactionsScreen = ({ navigation }) => {
            filters.category !== 'all' || 
            filters.dateRange !== 'all' || 
            filters.search !== '';
+  };
+
+  const handleEditTransaction = (transaction) => {
+    setSelectedTransaction(transaction);
+    setEditModalVisible(true);
+  };
+
+  const handleSaveTransaction = (updatedTransaction) => {
+    if (updatedTransaction._delete) {
+      deleteTransaction(updatedTransaction.id);
+    } else {
+      updateTransaction(updatedTransaction);
+    }
+    setEditModalVisible(false);
+    setSelectedTransaction(null);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalVisible(false);
+    setSelectedTransaction(null);
   };
 
   const FilterModal = () => (
@@ -292,6 +331,16 @@ const TransactionsScreen = ({ navigation }) => {
           </Text>
         </View>
       </View>
+      <View style={styles.transactionActions}>
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: theme.colors.primary + '20' }]}
+          onPress={() => handleEditTransaction(transaction)}
+        >
+          <Text style={[styles.actionButtonText, { color: theme.colors.primary }]}>
+            ✏️ Editar
+          </Text>
+        </TouchableOpacity>
+      </View>
     </Card>
   );
 
@@ -444,6 +493,12 @@ const TransactionsScreen = ({ navigation }) => {
       </View>
 
       <FilterModal />
+      <UnifiedTransactionModal
+        visible={editModalVisible}
+        onClose={handleCloseEditModal}
+        onSave={handleSaveTransaction}
+        transaction={selectedTransaction}
+      />
     </View>
   );
 };
@@ -685,6 +740,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   paginationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  transactionActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+  },
+  actionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginLeft: 8,
+  },
+  actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
   },
