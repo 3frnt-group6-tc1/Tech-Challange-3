@@ -16,11 +16,13 @@ import Animated, {
 import { PieChart, BarChart } from 'react-native-chart-kit';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTransactions } from '../contexts/TransactionsContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { Card } from '../components/Card';
 
 const DashboardScreen = () => {
   const { theme } = useTheme();
   const { transactions, getTotalByType, getBalance } = useTransactions();
+  const { formatCurrency, currency } = useCurrency();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(() => {
@@ -87,14 +89,14 @@ const DashboardScreen = () => {
     return {
       pieData: [
         {
-          name: 'Receitas',
+          name: `Receitas (${currency.symbol})`,
           population: incomeData,
           color: '#4CAF50',
           legendFontColor: theme.colors.text,
           legendFontSize: 12,
         },
         {
-          name: 'Despesas',
+          name: `Despesas (${currency.symbol})`,
           population: expenseData,
           color: '#F44336',
           legendFontColor: theme.colors.text,
@@ -161,7 +163,7 @@ const DashboardScreen = () => {
               Saldo Total
             </Text>
             <Text style={[styles.balance, { color: theme.colors.text }]}>
-              R$ {balanceTotal.toFixed(2)}
+              {formatCurrency(balanceTotal)}
             </Text>
           </Card>
         </Animated.View>
@@ -175,7 +177,7 @@ const DashboardScreen = () => {
               Receitas
             </Text>
             <Text style={[styles.summaryAmount, { color: theme.colors.success }]}>
-              R$ {incomeTotal.toFixed(2)}
+              {formatCurrency(incomeTotal)}
             </Text>
           </Card>
           
@@ -184,7 +186,7 @@ const DashboardScreen = () => {
               Despesas
             </Text>
             <Text style={[styles.summaryAmount, { color: theme.colors.error }]}>
-              R$ {expenseTotal.toFixed(2)}
+              {formatCurrency(expenseTotal)}
             </Text>
           </Card>
         </Animated.View>
@@ -224,7 +226,7 @@ const DashboardScreen = () => {
                 data={chartData.barData}
                 width={screenWidth - 80}
                 height={220}
-                yAxisLabel="R$ "
+                yAxisLabel={`${currency.symbol} `}
                 yAxisSuffix=""
                 chartConfig={{
                   backgroundColor: '#ffffff',

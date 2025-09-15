@@ -12,8 +12,8 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTransactions } from '../contexts/TransactionsContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { Button } from './Button';
-import { formatCurrencyInput, parseCurrency } from '../utils/currencyFormatter';
 import NativeDatePicker from './NativeDatePicker';
 
 const RecurringTransactionModal = ({ 
@@ -24,6 +24,7 @@ const RecurringTransactionModal = ({
 }) => {
   const { theme } = useTheme();
   const { categories } = useTransactions();
+  const { formatCurrencyInput, parseCurrency } = useCurrency();
   
   const frequencies = [
     { value: 'daily', label: 'Diário' },

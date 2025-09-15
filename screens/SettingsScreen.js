@@ -8,10 +8,12 @@ import {
   ScrollView
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { Card } from '../components/Card';
 
 const SettingsScreen = ({ navigation }) => {
   const { theme, isDarkMode, toggleTheme } = useTheme();
+  const { currency } = useCurrency();
   const [notifications, setNotifications] = useState(true);
   const [biometric, setBiometric] = useState(false);
 
@@ -63,9 +65,10 @@ const SettingsScreen = ({ navigation }) => {
           <Card style={styles.menuCard}>
             <MenuItem
               title="Moeda Padrão"
-              subtitle="BRL (R$)"
+              subtitle={`${currency.code} (${currency.symbol})`}
               showArrow
               theme={theme}
+              onPress={() => navigation.navigate('CurrencySettings')}
             />
             
             <MenuItem

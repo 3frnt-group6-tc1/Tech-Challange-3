@@ -7,6 +7,7 @@ import { Text, StatusBar } from 'react-native';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { TransactionsProvider } from './contexts/TransactionsContext';
+import { CurrencyProvider } from './contexts/CurrencyContext';
 
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
@@ -18,6 +19,7 @@ import TransactionsScreen from './screens/TransactionsScreen';
 import CategoriesScreen from './screens/CategoriesScreen';
 import RecurringTransactionsScreen from './screens/RecurringTransactionsScreen';
 import ExportReportScreen from './screens/ExportReportScreen';
+import CurrencySettingsScreen from './screens/CurrencySettingsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -149,6 +151,14 @@ const MainTabs = () => {
           presentation: 'modal',
         }}
       />
+      <Stack.Screen 
+        name="CurrencySettings" 
+        component={CurrencySettingsScreen}
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+        }}
+      />
     </Stack.Navigator>
   );
 };
@@ -177,11 +187,13 @@ const AppNavigator = () => {
 const App = () => {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <TransactionsProvider>
-          <AppNavigator />
-        </TransactionsProvider>
-      </AuthProvider>
+      <CurrencyProvider>
+        <AuthProvider>
+          <TransactionsProvider>
+            <AppNavigator />
+          </TransactionsProvider>
+        </AuthProvider>
+      </CurrencyProvider>
     </ThemeProvider>
   );
 };

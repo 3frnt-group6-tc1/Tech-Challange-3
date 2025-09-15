@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTransactions } from '../contexts/TransactionsContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -21,6 +22,7 @@ import { formatDate } from '../utils/dateFormatter';
 const TransactionsScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const { transactions, updateTransaction, deleteTransaction } = useTransactions();
+  const { formatCurrency } = useCurrency();
   const [refreshing, setRefreshing] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
@@ -324,7 +326,7 @@ const TransactionsScreen = ({ navigation }) => {
             styles.transactionAmount,
             { color: getTypeColor(transaction.type) }
           ]}>
-            {transaction.type === 'income' ? '+ ' : '- '}R$ {transaction.amount.toFixed(2)}
+            {transaction.type === 'income' ? '+ ' : '- '}{formatCurrency(transaction.amount)}
           </Text>
           <Text style={[styles.transactionType, { color: theme.colors.textSecondary }]}>
             {getTypeLabel(transaction.type)}

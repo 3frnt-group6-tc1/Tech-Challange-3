@@ -17,3 +17,16 @@ export const formatCurrencyInput = (value) => {
   
   return `R$ ${formattedValue}`;
 };
+
+export const formatCurrency = (amount, currency = { symbol: 'R$', locale: 'pt-BR' }) => {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return `${currency.symbol} 0,00`;
+  }
+
+  const formattedValue = Number(amount).toLocaleString(currency.locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  return `${currency.symbol} ${formattedValue}`;
+};

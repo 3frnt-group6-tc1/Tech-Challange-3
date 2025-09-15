@@ -16,6 +16,7 @@ import Animated, {
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTransactions } from '../contexts/TransactionsContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import UnifiedTransactionModal from '../components/UnifiedTransactionModal';
@@ -25,6 +26,7 @@ const HomeScreen = ({ navigation }) => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const { transactions, addTransaction, getTotalByType, getBalance } = useTransactions();
+  const { formatCurrency } = useCurrency();
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState('income');
@@ -94,7 +96,7 @@ const HomeScreen = ({ navigation }) => {
               Saldo Total
             </Text>
             <Text style={[styles.balance, { color: theme.colors.text }]}>
-              R$ {balanceTotal.toFixed(2)}
+              {formatCurrency(balanceTotal)}
             </Text>
           </Card>
         </Animated.View>
@@ -127,7 +129,7 @@ const HomeScreen = ({ navigation }) => {
               Receitas
             </Text>
             <Text style={[styles.summaryAmount, { color: theme.colors.success }]}>
-              R$ {incomeTotal.toFixed(2)}
+              {formatCurrency(incomeTotal)}
             </Text>
           </Card>
           
@@ -136,7 +138,7 @@ const HomeScreen = ({ navigation }) => {
               Despesas
             </Text>
             <Text style={[styles.summaryAmount, { color: theme.colors.error }]}>
-              R$ {expenseTotal.toFixed(2)}
+              {formatCurrency(expenseTotal)}
             </Text>
           </Card>
         </Animated.View>
