@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from './AuthContext';
 
 const TransactionsContext = createContext();
 
@@ -12,6 +13,7 @@ export const useTransactions = () => {
 };
 
 export const TransactionsProvider = ({ children }) => {
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [recurringTransactions, setRecurringTransactions] = useState([]);
   const [categories, setCategories] = useState({
@@ -19,17 +21,31 @@ export const TransactionsProvider = ({ children }) => {
     expense: ['Alimentação', 'Transporte', 'Moradia', 'Saúde', 'Lazer', 'Outros']
   });
 
+  const getStorageKey = (key) => {
+    return user ? `${key}_${user.uid}` : key;
+  };
+
   // Carregar dados do AsyncStorage
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user) {
+      loadData();
+    } else {
+      // Limpar dados quando usuário faz logout
+      setTransactions([]);
+      setRecurringTransactions([]);
+      setCategories({
+        income: ['Salário', 'Freelance', 'Investimentos', 'Vendas', 'Outros'],
+        expense: ['Alimentação', 'Transporte', 'Moradia', 'Saúde', 'Lazer', 'Outros']
+      });
+    }
+  }, [user]);
 
   const loadData = async () => {
     try {
       const [savedTransactions, savedCategories, savedRecurring] = await Promise.all([
-        AsyncStorage.getItem('transactions'),
-        AsyncStorage.getItem('categories'),
-        AsyncStorage.getItem('recurringTransactions')
+        AsyncStorage.getItem(getStorageKey('transactions')),
+        AsyncStorage.getItem(getStorageKey('categories')),
+        AsyncStorage.getItem(getStorageKey('recurringTransactions'))
       ]);
       
       if (savedTransactions) {
@@ -51,7 +67,7 @@ export const TransactionsProvider = ({ children }) => {
   // Salvar transações no AsyncStorage
   const saveTransactions = async (newTransactions) => {
     try {
-      await AsyncStorage.setItem('transactions', JSON.stringify(newTransactions));
+      await AsyncStorage.setItem(getStorageKey('transactions'), JSON.stringify(newTransactions));
     } catch (error) {
       console.error('Erro ao salvar transações:', error);
     }
@@ -60,7 +76,7 @@ export const TransactionsProvider = ({ children }) => {
   // Salvar categorias no AsyncStorage
   const saveCategories = async (newCategories) => {
     try {
-      await AsyncStorage.setItem('categories', JSON.stringify(newCategories));
+      await AsyncStorage.setItem(getStorageKey('categories'), JSON.stringify(newCategories));
     } catch (error) {
       console.error('Erro ao salvar categorias:', error);
     }
@@ -69,7 +85,7 @@ export const TransactionsProvider = ({ children }) => {
   // Salvar transações recorrentes no AsyncStorage
   const saveRecurringTransactions = async (newRecurring) => {
     try {
-      await AsyncStorage.setItem('recurringTransactions', JSON.stringify(newRecurring));
+      await AsyncStorage.setItem(getStorageKey('recurringTransactions'), JSON.stringify(newRecurring));
     } catch (error) {
       console.error('Erro ao salvar transações recorrentes:', error);
     }

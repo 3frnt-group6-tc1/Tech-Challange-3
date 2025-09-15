@@ -1,9 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from './AuthContext';
 
 const CurrencyContext = createContext();
-
-const CURRENCY_STORAGE_KEY = '@currency_settings';
 
 const CURRENCIES = [
   { code: 'BRL', symbol: 'R$', name: 'Real Brasileiro', locale: 'pt-BR' },
@@ -19,16 +18,27 @@ const CURRENCIES = [
 ];
 
 export const CurrencyProvider = ({ children }) => {
+  const { user } = useAuth();
   const [currency, setCurrency] = useState(CURRENCIES[0]);
   const [loading, setLoading] = useState(true);
 
+  const getCurrencyStorageKey = () => {
+    return user ? `@currency_settings_${user.uid}` : '@currency_settings';
+  };
+
   useEffect(() => {
-    loadCurrencySettings();
-  }, []);
+    if (user) {
+      loadCurrencySettings();
+    } else {
+      setCurrency(CURRENCIES[0]);
+      setLoading(false);
+    }
+  }, [user]);
 
   const loadCurrencySettings = async () => {
     try {
-      const savedCurrency = await AsyncStorage.getItem(CURRENCY_STORAGE_KEY);
+      const storageKey = getCurrencyStorageKey();
+      const savedCurrency = await AsyncStorage.getItem(storageKey);
       if (savedCurrency) {
         const parsedCurrency = JSON.parse(savedCurrency);
         const foundCurrency = CURRENCIES.find(c => c.code === parsedCurrency.code);
@@ -45,7 +55,8 @@ export const CurrencyProvider = ({ children }) => {
 
   const updateCurrency = async (newCurrency) => {
     try {
-      await AsyncStorage.setItem(CURRENCY_STORAGE_KEY, JSON.stringify(newCurrency));
+      const storageKey = getCurrencyStorageKey();
+      await AsyncStorage.setItem(storageKey, JSON.stringify(newCurrency));
       setCurrency(newCurrency);
     } catch (error) {
       console.error('Erro ao salvar configurações de moeda:', error);
