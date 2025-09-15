@@ -16,16 +16,21 @@ import { Button } from './Button';
 import { formatCurrencyInput, parseCurrency } from '../utils/currencyFormatter';
 import NativeDatePicker from './NativeDatePicker';
 
-const UnifiedTransactionModal = ({ 
+const RecurringTransactionModal = ({ 
   visible, 
   onClose, 
   onSave, 
-  transaction = null,
-  type = 'income'
+  transaction = null
 }) => {
   const { theme } = useTheme();
   const { categories } = useTransactions();
-
+  
+  const frequencies = [
+    { value: 'daily', label: 'Diário' },
+    { value: 'weekly', label: 'Semanal' },
+    { value: 'monthly', label: 'Mensal' },
+    { value: 'yearly', label: 'Anual' }
+  ];
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm({
     defaultValues: {
@@ -33,7 +38,8 @@ const UnifiedTransactionModal = ({
       description: '',
       amount: '',
       category: '',
-      date: new Date().toISOString().split('T')[0],
+      frequency: 'monthly',
+      nextDueDate: new Date().toISOString().split('T')[0],
     }
   });
 
@@ -44,7 +50,8 @@ const UnifiedTransactionModal = ({
         description: transaction.description || '',
         amount: transaction.amount?.toString() || '',
         category: transaction.category || '',
-        date: transaction.date || new Date().toISOString().split('T')[0],
+        frequency: transaction.frequency || 'monthly',
+        nextDueDate: transaction.nextDueDate || new Date().toISOString().split('T')[0],
       });
     } else {
       reset({
@@ -52,7 +59,8 @@ const UnifiedTransactionModal = ({
         description: '',
         amount: '',
         category: '',
-        date: new Date().toISOString().split('T')[0],
+        frequency: 'monthly',
+        nextDueDate: new Date().toISOString().split('T')[0],
       });
     }
   }, [transaction, visible, reset]);
@@ -64,8 +72,9 @@ const UnifiedTransactionModal = ({
       description: data.description.trim(),
       amount: amount,
       category: data.category,
-      type: transaction ? transaction.type : type,
-      date: data.date,
+      type: transaction ? transaction.type : 'expense',
+      frequency: data.frequency,
+      nextDueDate: data.nextDueDate,
     };
 
     if (transaction) {
@@ -85,7 +94,7 @@ const UnifiedTransactionModal = ({
   const handleDelete = () => {
     Alert.alert(
       'Confirmar Exclusão',
-      'Tem certeza que deseja excluir esta transação?',
+      'Tem certeza que deseja excluir esta transação recorrente?',
       [
         { text: 'Cancelar', style: 'cancel' },
         { 
@@ -100,8 +109,7 @@ const UnifiedTransactionModal = ({
     );
   };
 
-  const modalTitle = transaction ? 'Editar Transação' : 
-    (type === 'income' ? 'Adicionar Receita' : 'Adicionar Despesa');
+  const modalTitle = transaction ? 'Editar Transação Recorrente' : 'Nova Transação Recorrente';
 
   return (
     <Modal
@@ -229,7 +237,7 @@ const UnifiedTransactionModal = ({
                 }}
                 render={({ field: { onChange, value } }) => (
                   <View style={styles.categoryContainer}>
-                    {categories[transaction ? transaction.type : type].map((cat) => (
+                    {categories.expense.map((cat) => (
                       <TouchableOpacity
                         key={cat}
                         style={[
@@ -262,10 +270,52 @@ const UnifiedTransactionModal = ({
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>Data e Horário *</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>Frequência *</Text>
               <Controller
                 control={control}
-                name="date"
+                name="frequency"
+                rules={{
+                  required: 'Frequência é obrigatória',
+                }}
+                render={({ field: { onChange, value } }) => (
+                  <View style={styles.frequencyContainer}>
+                    {frequencies.map((freq) => (
+                      <TouchableOpacity
+                        key={freq.value}
+                        style={[
+                          styles.frequencyButton,
+                          {
+                            backgroundColor: value === freq.value 
+                              ? theme.colors.primary 
+                              : theme.colors.background,
+                            borderColor: theme.colors.border,
+                          }
+                        ]}
+                        onPress={() => onChange(freq.value)}
+                      >
+                        <Text style={[
+                          styles.frequencyText,
+                          {
+                            color: value === freq.value 
+                              ? '#ffffff' 
+                              : theme.colors.text
+                          }
+                        ]}>
+                          {freq.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              />
+              {errors.frequency && <Text style={styles.errorText}>{errors.frequency.message}</Text>}
+            </View>
+
+            <View style={styles.fieldContainer}>
+              <Text style={[styles.label, { color: theme.colors.text }]}>Próxima Data *</Text>
+              <Controller
+                control={control}
+                name="nextDueDate"
                 rules={{
                   required: 'Data é obrigatória',
                 }}
@@ -277,13 +327,13 @@ const UnifiedTransactionModal = ({
                         onChange(selectedDate.toISOString().split('T')[0]);
                       }
                     }}
-                    mode="datetime"
-                    placeholder="Selecionar data e horário"
-                    error={!!errors.date}
+                    mode="date"
+                    placeholder="Selecionar próxima data"
+                    error={!!errors.nextDueDate}
                   />
                 )}
               />
-              {errors.date && <Text style={styles.errorText}>{errors.date.message}</Text>}
+              {errors.nextDueDate && <Text style={styles.errorText}>{errors.nextDueDate.message}</Text>}
             </View>
           </ScrollView>
 
@@ -303,7 +353,7 @@ const UnifiedTransactionModal = ({
             />
             <Button
               title="Salvar"
-              variant={transaction ? (transaction.type === 'income' ? 'success' : 'danger') : (type === 'income' ? 'success' : 'danger')}
+              variant="danger"
               style={styles.saveButton}
               onPress={handleSubmit(onSubmit)}
             />
@@ -369,6 +419,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
+  frequencyContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  frequencyButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  frequencyText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
   errorText: {
     color: '#ff4444',
     fontSize: 12,
@@ -390,4 +455,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default UnifiedTransactionModal;
+export default RecurringTransactionModal;
+

@@ -15,6 +15,9 @@ import DashboardScreen from './screens/DashboardScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import TransactionsScreen from './screens/TransactionsScreen';
+import CategoriesScreen from './screens/CategoriesScreen';
+import RecurringTransactionsScreen from './screens/RecurringTransactionsScreen';
+import ExportReportScreen from './screens/ExportReportScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -117,6 +120,30 @@ const MainTabs = () => {
       <Stack.Screen 
         name="Transactions" 
         component={TransactionsScreen}
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen 
+        name="Categories" 
+        component={CategoriesScreen}
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen 
+        name="RecurringTransactions" 
+        component={RecurringTransactionsScreen}
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen 
+        name="ExportReport" 
+        component={ExportReportScreen}
         options={{
           headerShown: false,
           presentation: 'modal',
