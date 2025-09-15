@@ -8,17 +8,26 @@ import {
   RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { 
+  FadeIn,
+  FadeInDown,
+  FadeInUp
+} from 'react-native-reanimated';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTransactions } from '../contexts/TransactionsContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import TransactionModal from '../components/TransactionModal';
+import UnifiedTransactionModal from '../components/UnifiedTransactionModal';
+import { formatDate } from '../utils/dateFormatter';
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }) => {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { transactions, addTransaction, getTotalByType, getBalance } = useTransactions();
+  const { formatCurrency } = useCurrency();
   const [refreshing, setRefreshing] = useState(false);
-  const [transactions, setTransactions] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState('income');
 
@@ -33,9 +42,10 @@ const HomeScreen = () => {
     return name.charAt(0).toUpperCase() + name.slice(1);
   };
 
-  const incomeTotal = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-  const expenseTotal = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-  const balanceTotal = incomeTotal - expenseTotal;
+
+  const incomeTotal = getTotalByType('income');
+  const expenseTotal = getTotalByType('expense');
+  const balanceTotal = getBalance();
 
   const handleAddPress = (type) => {
     setModalType(type);
@@ -43,7 +53,7 @@ const HomeScreen = () => {
   };
 
   const handleSaveTransaction = (newTransaction) => {
-    setTransactions([newTransaction, ...transactions]);
+    addTransaction(newTransaction);
   };
 
   return (
@@ -80,37 +90,21 @@ const HomeScreen = () => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-        <Card style={styles.balanceCard}>
-          <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>
-            Saldo Total
-          </Text>
-          <Text style={[styles.balance, { color: theme.colors.text }]}>
-            R$ {balanceTotal.toFixed(2)}
-          </Text>
-
-        </Card>
-
-        <View style={styles.summaryRow}>
-          <Card style={styles.summaryCard}>
-            <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>
-              Receitas
+        <Animated.View entering={FadeInDown.delay(100).duration(600)}>
+          <Card style={styles.balanceCard}>
+            <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>
+              Saldo Total
             </Text>
-            <Text style={[styles.summaryAmount, { color: theme.colors.success }]}>
-              R$ {incomeTotal.toFixed(2)}
+            <Text style={[styles.balance, { color: theme.colors.text }]}>
+              {formatCurrency(balanceTotal)}
             </Text>
           </Card>
-          
-          <Card style={styles.summaryCard}>
-            <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>
-              Despesas
-            </Text>
-            <Text style={[styles.summaryAmount, { color: theme.colors.error }]}>
-              R$ {expenseTotal.toFixed(2)}
-            </Text>
-          </Card>
-        </View>
+        </Animated.View>
 
-        <View style={styles.actionsContainer}>
+        <Animated.View 
+          entering={FadeInUp.delay(150).duration(600)}
+          style={styles.actionsContainer}
+        >
           <Button
             title="Adicionar Receita"
             variant="success"
@@ -124,19 +118,45 @@ const HomeScreen = () => {
             style={styles.actionButton}
             onPress={() => handleAddPress('expense')}
           />
-        </View>
+        </Animated.View>
 
-        <Card>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-              Transações Recentes
+        <Animated.View 
+          entering={FadeInUp.delay(200).duration(600)}
+          style={styles.summaryRow}
+        >
+          <Card style={styles.summaryCard}>
+            <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>
+              Receitas
             </Text>
-            <TouchableOpacity>
-              <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>
-                Ver todas
+            <Text style={[styles.summaryAmount, { color: theme.colors.success }]}>
+              {formatCurrency(incomeTotal)}
+            </Text>
+          </Card>
+          
+          <Card style={styles.summaryCard}>
+            <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>
+              Despesas
+            </Text>
+            <Text style={[styles.summaryAmount, { color: theme.colors.error }]}>
+              {formatCurrency(expenseTotal)}
+            </Text>
+          </Card>
+        </Animated.View>
+
+
+
+        <Animated.View entering={FadeIn.delay(300).duration(600)}>
+          <Card>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                Transações Recentes
               </Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity onPress={() => navigation.navigate('Transactions')}>
+                <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>
+                  Ver todas
+                </Text>
+              </TouchableOpacity>
+            </View>
           
           <View style={styles.transactionsList}>
 {transactions.length === 0 ? (
@@ -157,9 +177,10 @@ const HomeScreen = () => {
               ))
             )}
           </View>
-        </Card>
+          </Card>
+        </Animated.View>
 
-        <TransactionModal
+        <UnifiedTransactionModal
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
           onSave={handleSaveTransaction}
@@ -190,7 +211,7 @@ const TransactionItem = ({ title, category, amount, date, type, theme }) => (
           {title}
         </Text>
         <Text style={[styles.transactionCategory, { color: theme.colors.textSecondary }]}>
-          {category} • {date}
+          {category} • {formatDate(date)}
         </Text>
       </View>
     </View>

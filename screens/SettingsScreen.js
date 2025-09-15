@@ -8,10 +8,12 @@ import {
   ScrollView
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { Card } from '../components/Card';
 
-const SettingsScreen = () => {
+const SettingsScreen = ({ navigation }) => {
   const { theme, isDarkMode, toggleTheme } = useTheme();
+  const { currency } = useCurrency();
   const [notifications, setNotifications] = useState(true);
   const [biometric, setBiometric] = useState(false);
 
@@ -63,9 +65,10 @@ const SettingsScreen = () => {
           <Card style={styles.menuCard}>
             <MenuItem
               title="Moeda Padrão"
-              subtitle="BRL (R$)"
+              subtitle={`${currency.code} (${currency.symbol})`}
               showArrow
               theme={theme}
+              onPress={() => navigation.navigate('CurrencySettings')}
             />
             
             <MenuItem
@@ -73,13 +76,23 @@ const SettingsScreen = () => {
               subtitle="Gerenciar categorias de gastos"
               showArrow
               theme={theme}
+              onPress={() => navigation.navigate('Categories')}
+            />
+            
+            <MenuItem
+              title="Transações Recorrentes"
+              subtitle="Configurar transações automáticas"
+              showArrow
+              theme={theme}
+              onPress={() => navigation.navigate('RecurringTransactions')}
             />
             
             <MenuItem
               title="Exportar Dados"
-              subtitle="Baixar relatórios em PDF/Excel"
+              subtitle="Baixar relatórios em CSV/Texto"
               showArrow
               theme={theme}
+              onPress={() => navigation.navigate('ExportReport')}
               isLast
             />
           </Card>
