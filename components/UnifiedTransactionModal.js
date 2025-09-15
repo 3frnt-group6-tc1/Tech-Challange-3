@@ -25,7 +25,7 @@ const UnifiedTransactionModal = ({
 }) => {
   const { theme } = useTheme();
   const { categories } = useTransactions();
-  const { formatCurrencyInput, parseCurrency } = useCurrency();
+  const { formatCurrencyInput, parseCurrency, currency } = useCurrency();
 
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm({
@@ -198,7 +198,7 @@ const UnifiedTransactionModal = ({
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
                   <TextInput
-                    placeholder="Digite o valor (ex: R$ 100,50)"
+                    placeholder={`Digite o valor (ex: ${currency.symbol} 100,50)`}
                     value={value ? formatCurrencyInput(value) : ''}
                     onChangeText={(text) => {
                       const numericValue = text.replace(/\D/g, '');
