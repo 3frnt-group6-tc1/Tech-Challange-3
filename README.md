@@ -86,7 +86,7 @@ const firebaseConfig = {
 
 ```bash
 
-expo start
+npx expo start
 ```
 
 Use um emulador ou o aplicativo **Expo Go** no celular para escanear o QRCode.
