@@ -1,13 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from './AuthContext';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "./AuthContext";
 
 const TransactionsContext = createContext();
 
 export const useTransactions = () => {
   const context = useContext(TransactionsContext);
   if (!context) {
-    throw new Error('useTransactions must be used within a TransactionsProvider');
+    throw new Error(
+      "useTransactions must be used within a TransactionsProvider"
+    );
   }
   return context;
 };
@@ -17,8 +19,15 @@ export const TransactionsProvider = ({ children }) => {
   const [transactions, setTransactions] = useState([]);
   const [recurringTransactions, setRecurringTransactions] = useState([]);
   const [categories, setCategories] = useState({
-    income: ['Salário', 'Freelance', 'Investimentos', 'Vendas', 'Outros'],
-    expense: ['Alimentação', 'Transporte', 'Moradia', 'Saúde', 'Lazer', 'Outros']
+    income: ["Salário", "Freelance", "Investimentos", "Vendas", "Outros"],
+    expense: [
+      "Alimentação",
+      "Transporte",
+      "Moradia",
+      "Saúde",
+      "Lazer",
+      "Outros",
+    ],
   });
 
   const getStorageKey = (key) => {
@@ -34,24 +43,32 @@ export const TransactionsProvider = ({ children }) => {
       setTransactions([]);
       setRecurringTransactions([]);
       setCategories({
-        income: ['Salário', 'Freelance', 'Investimentos', 'Vendas', 'Outros'],
-        expense: ['Alimentação', 'Transporte', 'Moradia', 'Saúde', 'Lazer', 'Outros']
+        income: ["Salário", "Freelance", "Investimentos", "Vendas", "Outros"],
+        expense: [
+          "Alimentação",
+          "Transporte",
+          "Moradia",
+          "Saúde",
+          "Lazer",
+          "Outros",
+        ],
       });
     }
   }, [user]);
 
   const loadData = async () => {
     try {
-      const [savedTransactions, savedCategories, savedRecurring] = await Promise.all([
-        AsyncStorage.getItem(getStorageKey('transactions')),
-        AsyncStorage.getItem(getStorageKey('categories')),
-        AsyncStorage.getItem(getStorageKey('recurringTransactions'))
-      ]);
-      
+      const [savedTransactions, savedCategories, savedRecurring] =
+        await Promise.all([
+          AsyncStorage.getItem(getStorageKey("transactions")),
+          AsyncStorage.getItem(getStorageKey("categories")),
+          AsyncStorage.getItem(getStorageKey("recurringTransactions")),
+        ]);
+
       if (savedTransactions) {
         setTransactions(JSON.parse(savedTransactions));
       }
-      
+
       if (savedCategories) {
         setCategories(JSON.parse(savedCategories));
       }
@@ -60,34 +77,43 @@ export const TransactionsProvider = ({ children }) => {
         setRecurringTransactions(JSON.parse(savedRecurring));
       }
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error("Erro ao carregar dados:", error);
     }
   };
 
   // Salvar transações no AsyncStorage
   const saveTransactions = async (newTransactions) => {
     try {
-      await AsyncStorage.setItem(getStorageKey('transactions'), JSON.stringify(newTransactions));
+      await AsyncStorage.setItem(
+        getStorageKey("transactions"),
+        JSON.stringify(newTransactions)
+      );
     } catch (error) {
-      console.error('Erro ao salvar transações:', error);
+      console.error("Erro ao salvar transações:", error);
     }
   };
 
   // Salvar categorias no AsyncStorage
   const saveCategories = async (newCategories) => {
     try {
-      await AsyncStorage.setItem(getStorageKey('categories'), JSON.stringify(newCategories));
+      await AsyncStorage.setItem(
+        getStorageKey("categories"),
+        JSON.stringify(newCategories)
+      );
     } catch (error) {
-      console.error('Erro ao salvar categorias:', error);
+      console.error("Erro ao salvar categorias:", error);
     }
   };
 
   // Salvar transações recorrentes no AsyncStorage
   const saveRecurringTransactions = async (newRecurring) => {
     try {
-      await AsyncStorage.setItem(getStorageKey('recurringTransactions'), JSON.stringify(newRecurring));
+      await AsyncStorage.setItem(
+        getStorageKey("recurringTransactions"),
+        JSON.stringify(newRecurring)
+      );
     } catch (error) {
-      console.error('Erro ao salvar transações recorrentes:', error);
+      console.error("Erro ao salvar transações recorrentes:", error);
     }
   };
 
@@ -95,7 +121,8 @@ export const TransactionsProvider = ({ children }) => {
     const newTransaction = {
       ...transaction,
       id: Date.now().toString(),
-      date: transaction.date || new Date().toISOString().split('T')[0],
+      date: transaction.date || new Date().toISOString().split("T")[0],
+      imageUrl: transaction.imageUrl || null, // Add imageUrl support
     };
     const updatedTransactions = [newTransaction, ...transactions];
     setTransactions(updatedTransactions);
@@ -103,15 +130,25 @@ export const TransactionsProvider = ({ children }) => {
   };
 
   const updateTransaction = (updatedTransaction) => {
-    const updatedTransactions = transactions.map(transaction => 
-      transaction.id === updatedTransaction.id ? updatedTransaction : transaction
+    const updatedTransactions = transactions.map((transaction) =>
+      transaction.id === updatedTransaction.id
+        ? {
+            ...transaction,
+            ...updatedTransaction,
+            imageUrl: updatedTransaction.hasOwnProperty("imageUrl")
+              ? updatedTransaction.imageUrl
+              : transaction.imageUrl || null,
+          }
+        : transaction
     );
     setTransactions(updatedTransactions);
     saveTransactions(updatedTransactions);
   };
 
   const deleteTransaction = (id) => {
-    const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
+    const updatedTransactions = transactions.filter(
+      (transaction) => transaction.id !== id
+    );
     setTransactions(updatedTransactions);
     saveTransactions(updatedTransactions);
   };
@@ -119,10 +156,10 @@ export const TransactionsProvider = ({ children }) => {
   // Funções para gerenciar categorias
   const addCategory = (type, categoryName) => {
     if (!categoryName.trim()) return;
-    
+
     const newCategories = {
       ...categories,
-      [type]: [...categories[type], categoryName.trim()]
+      [type]: [...categories[type], categoryName.trim()],
     };
     setCategories(newCategories);
     saveCategories(newCategories);
@@ -130,14 +167,16 @@ export const TransactionsProvider = ({ children }) => {
 
   const removeCategory = (type, categoryName) => {
     // Não permitir remover se há transações usando esta categoria
-    const hasTransactions = transactions.some(t => t.category === categoryName);
+    const hasTransactions = transactions.some(
+      (t) => t.category === categoryName
+    );
     if (hasTransactions) {
-      throw new Error('Não é possível excluir categoria que possui transações');
+      throw new Error("Não é possível excluir categoria que possui transações");
     }
 
     const newCategories = {
       ...categories,
-      [type]: categories[type].filter(cat => cat !== categoryName)
+      [type]: categories[type].filter((cat) => cat !== categoryName),
     };
     setCategories(newCategories);
     saveCategories(newCategories);
@@ -145,19 +184,21 @@ export const TransactionsProvider = ({ children }) => {
 
   const updateCategory = (type, oldName, newName) => {
     if (!newName.trim()) return;
-    
+
     // Atualizar transações que usam esta categoria
-    const updatedTransactions = transactions.map(transaction => 
-      transaction.category === oldName 
+    const updatedTransactions = transactions.map((transaction) =>
+      transaction.category === oldName
         ? { ...transaction, category: newName.trim() }
         : transaction
     );
-    
+
     const newCategories = {
       ...categories,
-      [type]: categories[type].map(cat => cat === oldName ? newName.trim() : cat)
+      [type]: categories[type].map((cat) =>
+        cat === oldName ? newName.trim() : cat
+      ),
     };
-    
+
     setCategories(newCategories);
     setTransactions(updatedTransactions);
     saveCategories(newCategories);
@@ -169,7 +210,9 @@ export const TransactionsProvider = ({ children }) => {
     const newRecurring = {
       ...recurringTransaction,
       id: Date.now().toString(),
-      nextDueDate: recurringTransaction.nextDueDate || new Date().toISOString().split('T')[0],
+      nextDueDate:
+        recurringTransaction.nextDueDate ||
+        new Date().toISOString().split("T")[0],
       createdAt: new Date().toISOString(),
     };
     const updatedRecurring = [newRecurring, ...recurringTransactions];
@@ -178,7 +221,7 @@ export const TransactionsProvider = ({ children }) => {
   };
 
   const updateRecurringTransaction = (updatedRecurring) => {
-    const updatedRecurringList = recurringTransactions.map(transaction => 
+    const updatedRecurringList = recurringTransactions.map((transaction) =>
       transaction.id === updatedRecurring.id ? updatedRecurring : transaction
     );
     setRecurringTransactions(updatedRecurringList);
@@ -186,7 +229,9 @@ export const TransactionsProvider = ({ children }) => {
   };
 
   const deleteRecurringTransaction = (id) => {
-    const updatedRecurring = recurringTransactions.filter(transaction => transaction.id !== id);
+    const updatedRecurring = recurringTransactions.filter(
+      (transaction) => transaction.id !== id
+    );
     setRecurringTransactions(updatedRecurring);
     saveRecurringTransactions(updatedRecurring);
   };
@@ -196,9 +241,9 @@ export const TransactionsProvider = ({ children }) => {
     const today = new Date();
     const newTransactions = [];
 
-    recurringTransactions.forEach(recurring => {
+    recurringTransactions.forEach((recurring) => {
       const nextDue = new Date(recurring.nextDueDate);
-      
+
       if (nextDue <= today) {
         // Criar transação baseada na recorrente
         const newTransaction = {
@@ -218,16 +263,16 @@ export const TransactionsProvider = ({ children }) => {
         // Calcular próxima data
         const nextDate = new Date(nextDue);
         switch (recurring.frequency) {
-          case 'daily':
+          case "daily":
             nextDate.setDate(nextDate.getDate() + 1);
             break;
-          case 'weekly':
+          case "weekly":
             nextDate.setDate(nextDate.getDate() + 7);
             break;
-          case 'monthly':
+          case "monthly":
             nextDate.setMonth(nextDate.getMonth() + 1);
             break;
-          case 'yearly':
+          case "yearly":
             nextDate.setFullYear(nextDate.getFullYear() + 1);
             break;
         }
@@ -235,7 +280,7 @@ export const TransactionsProvider = ({ children }) => {
         // Atualizar próxima data da transação recorrente
         updateRecurringTransaction({
           ...recurring,
-          nextDueDate: nextDate.toISOString().split('T')[0],
+          nextDueDate: nextDate.toISOString().split("T")[0],
         });
       }
     });
@@ -256,13 +301,13 @@ export const TransactionsProvider = ({ children }) => {
 
   const getTotalByType = (type) => {
     return transactions
-      .filter(transaction => transaction.type === type)
+      .filter((transaction) => transaction.type === type)
       .reduce((sum, transaction) => sum + transaction.amount, 0);
   };
 
   const getBalance = () => {
-    const income = getTotalByType('income');
-    const expense = getTotalByType('expense');
+    const income = getTotalByType("income");
+    const expense = getTotalByType("expense");
     return income - expense;
   };
 
