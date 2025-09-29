@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "./AuthContext";
+import firestoreService from "../services/firestoreService";
 
 const TransactionsContext = createContext();
 
@@ -29,15 +29,13 @@ export const TransactionsProvider = ({ children }) => {
       "Outros",
     ],
   });
+  const [loading, setLoading] = useState(false);
 
-  const getStorageKey = (key) => {
-    return user ? `${key}_${user.uid}` : key;
-  };
-
-  // Carregar dados do AsyncStorage
+  // Carregar dados do Firestore e configurar listeners
   useEffect(() => {
     if (user) {
       loadData();
+      setupRealtimeListeners();
     } else {
       // Limpar dados quando usuário faz logout
       setTransactions([]);
@@ -57,115 +55,149 @@ export const TransactionsProvider = ({ children }) => {
   }, [user]);
 
   const loadData = async () => {
+    if (!user) {
+      console.log("Usuário não autenticado, não carregando dados");
+      return;
+    }
+    
+    console.log("Carregando dados para usuário:", user.uid);
+    
     try {
-      const [savedTransactions, savedCategories, savedRecurring] =
-        await Promise.all([
-          AsyncStorage.getItem(getStorageKey("transactions")),
-          AsyncStorage.getItem(getStorageKey("categories")),
-          AsyncStorage.getItem(getStorageKey("recurringTransactions")),
-        ]);
+      setLoading(true);
+      const [userTransactions, userCategories, userRecurring] = await Promise.all([
+        firestoreService.getUserTransactions(user.uid),
+        firestoreService.getUserCategories(user.uid),
+        firestoreService.getUserRecurringTransactions(user.uid),
+      ]);
 
-      if (savedTransactions) {
-        setTransactions(JSON.parse(savedTransactions));
-      }
+      console.log("Dados carregados com sucesso:", {
+        transações: userTransactions.length,
+        categorias: Object.keys(userCategories).length,
+        recorrentes: userRecurring.length
+      });
 
-      if (savedCategories) {
-        setCategories(JSON.parse(savedCategories));
-      }
-
-      if (savedRecurring) {
-        setRecurringTransactions(JSON.parse(savedRecurring));
-      }
+      setTransactions(userTransactions);
+      setCategories(userCategories);
+      setRecurringTransactions(userRecurring);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
+      console.error("Detalhes do erro:", error.code, error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Salvar transações no AsyncStorage
-  const saveTransactions = async (newTransactions) => {
+  const setupRealtimeListeners = () => {
+    if (!user) {
+      console.log("Usuário não autenticado, não configurando listeners");
+      return;
+    }
+
+    console.log("Configurando listeners para usuário:", user.uid);
+
     try {
-      await AsyncStorage.setItem(
-        getStorageKey("transactions"),
-        JSON.stringify(newTransactions)
+      // Listener para transações
+      const unsubscribeTransactions = firestoreService.subscribeToUserTransactions(
+        user.uid,
+        (transactions) => {
+          console.log("Transações atualizadas em tempo real:", transactions.length);
+          setTransactions(transactions);
+        }
       );
+
+      // Listener para transações recorrentes
+      const unsubscribeRecurring = firestoreService.subscribeToUserRecurringTransactions(
+        user.uid,
+        (recurringTransactions) => {
+          console.log("Transações recorrentes atualizadas:", recurringTransactions.length);
+          setRecurringTransactions(recurringTransactions);
+        }
+      );
+
+      // Cleanup listeners quando componente for desmontado ou usuário mudar
+      return () => {
+        console.log("Desconectando listeners");
+        unsubscribeTransactions && unsubscribeTransactions();
+        unsubscribeRecurring && unsubscribeRecurring();
+      };
     } catch (error) {
-      console.error("Erro ao salvar transações:", error);
+      console.error("Erro ao configurar listeners:", error);
     }
   };
 
-  // Salvar categorias no AsyncStorage
-  const saveCategories = async (newCategories) => {
+  const addTransaction = async (transaction) => {
+    if (!user) return;
+
     try {
-      await AsyncStorage.setItem(
-        getStorageKey("categories"),
-        JSON.stringify(newCategories)
-      );
+      const newTransaction = {
+        ...transaction,
+        date: transaction.date || new Date().toISOString().split("T")[0],
+        imageUrl: transaction.imageUrl || null,
+      };
+      
+      await firestoreService.addUserTransaction(user.uid, newTransaction);
+      // O listener em tempo real atualizará o estado automaticamente
     } catch (error) {
-      console.error("Erro ao salvar categorias:", error);
+      console.error("Erro ao adicionar transação:", error);
+      throw error;
     }
   };
 
-  // Salvar transações recorrentes no AsyncStorage
-  const saveRecurringTransactions = async (newRecurring) => {
+  const updateTransaction = async (updatedTransaction) => {
+    if (!user) return;
+
     try {
-      await AsyncStorage.setItem(
-        getStorageKey("recurringTransactions"),
-        JSON.stringify(newRecurring)
-      );
+      const updates = {
+        ...updatedTransaction,
+        imageUrl: updatedTransaction.hasOwnProperty("imageUrl")
+          ? updatedTransaction.imageUrl
+          : undefined,
+      };
+      
+      // Remove o id dos updates pois não deve ser atualizado
+      delete updates.id;
+      
+      await firestoreService.updateUserTransaction(user.uid, updatedTransaction.id, updates);
+      // O listener em tempo real atualizará o estado automaticamente
     } catch (error) {
-      console.error("Erro ao salvar transações recorrentes:", error);
+      console.error("Erro ao atualizar transação:", error);
+      throw error;
     }
   };
 
-  const addTransaction = (transaction) => {
-    const newTransaction = {
-      ...transaction,
-      id: Date.now().toString(),
-      date: transaction.date || new Date().toISOString().split("T")[0],
-      imageUrl: transaction.imageUrl || null, // Add imageUrl support
-    };
-    const updatedTransactions = [newTransaction, ...transactions];
-    setTransactions(updatedTransactions);
-    saveTransactions(updatedTransactions);
-  };
+  const deleteTransaction = async (id) => {
+    if (!user) return;
 
-  const updateTransaction = (updatedTransaction) => {
-    const updatedTransactions = transactions.map((transaction) =>
-      transaction.id === updatedTransaction.id
-        ? {
-            ...transaction,
-            ...updatedTransaction,
-            imageUrl: updatedTransaction.hasOwnProperty("imageUrl")
-              ? updatedTransaction.imageUrl
-              : transaction.imageUrl || null,
-          }
-        : transaction
-    );
-    setTransactions(updatedTransactions);
-    saveTransactions(updatedTransactions);
-  };
-
-  const deleteTransaction = (id) => {
-    const updatedTransactions = transactions.filter(
-      (transaction) => transaction.id !== id
-    );
-    setTransactions(updatedTransactions);
-    saveTransactions(updatedTransactions);
+    try {
+      await firestoreService.deleteUserTransaction(user.uid, id);
+      // O listener em tempo real atualizará o estado automaticamente
+    } catch (error) {
+      console.error("Erro ao deletar transação:", error);
+      throw error;
+    }
   };
 
   // Funções para gerenciar categorias
-  const addCategory = (type, categoryName) => {
-    if (!categoryName.trim()) return;
+  const addCategory = async (type, categoryName) => {
+    if (!user || !categoryName.trim()) return;
 
-    const newCategories = {
-      ...categories,
-      [type]: [...categories[type], categoryName.trim()],
-    };
-    setCategories(newCategories);
-    saveCategories(newCategories);
+    try {
+      const newCategories = {
+        ...categories,
+        [type]: [...categories[type], categoryName.trim()],
+      };
+      
+      await firestoreService.saveUserCategories(user.uid, newCategories);
+      setCategories(newCategories);
+    } catch (error) {
+      console.error("Erro ao adicionar categoria:", error);
+      throw error;
+    }
   };
 
-  const removeCategory = (type, categoryName) => {
+  const removeCategory = async (type, categoryName) => {
+    if (!user) return;
+
     // Não permitir remover se há transações usando esta categoria
     const hasTransactions = transactions.some(
       (t) => t.category === categoryName
@@ -174,80 +206,117 @@ export const TransactionsProvider = ({ children }) => {
       throw new Error("Não é possível excluir categoria que possui transações");
     }
 
-    const newCategories = {
-      ...categories,
-      [type]: categories[type].filter((cat) => cat !== categoryName),
-    };
-    setCategories(newCategories);
-    saveCategories(newCategories);
+    try {
+      const newCategories = {
+        ...categories,
+        [type]: categories[type].filter((cat) => cat !== categoryName),
+      };
+      
+      await firestoreService.saveUserCategories(user.uid, newCategories);
+      setCategories(newCategories);
+    } catch (error) {
+      console.error("Erro ao remover categoria:", error);
+      throw error;
+    }
   };
 
-  const updateCategory = (type, oldName, newName) => {
-    if (!newName.trim()) return;
+  const updateCategory = async (type, oldName, newName) => {
+    if (!user || !newName.trim()) return;
 
-    // Atualizar transações que usam esta categoria
-    const updatedTransactions = transactions.map((transaction) =>
-      transaction.category === oldName
-        ? { ...transaction, category: newName.trim() }
-        : transaction
-    );
+    try {
+      // Atualizar transações que usam esta categoria
+      const transactionsToUpdate = transactions.filter(
+        (transaction) => transaction.category === oldName
+      );
 
-    const newCategories = {
-      ...categories,
-      [type]: categories[type].map((cat) =>
-        cat === oldName ? newName.trim() : cat
-      ),
-    };
+      // Atualizar cada transação no Firestore
+      const updatePromises = transactionsToUpdate.map((transaction) =>
+        firestoreService.updateUserTransaction(user.uid, transaction.id, {
+          category: newName.trim(),
+        })
+      );
 
-    setCategories(newCategories);
-    setTransactions(updatedTransactions);
-    saveCategories(newCategories);
-    saveTransactions(updatedTransactions);
+      // Atualizar categorias
+      const newCategories = {
+        ...categories,
+        [type]: categories[type].map((cat) =>
+          cat === oldName ? newName.trim() : cat
+        ),
+      };
+
+      await Promise.all([
+        ...updatePromises,
+        firestoreService.saveUserCategories(user.uid, newCategories),
+      ]);
+
+      setCategories(newCategories);
+      // As transações serão atualizadas pelo listener em tempo real
+    } catch (error) {
+      console.error("Erro ao atualizar categoria:", error);
+      throw error;
+    }
   };
 
   // Funções para gerenciar transações recorrentes
-  const addRecurringTransaction = (recurringTransaction) => {
-    const newRecurring = {
-      ...recurringTransaction,
-      id: Date.now().toString(),
-      nextDueDate:
-        recurringTransaction.nextDueDate ||
-        new Date().toISOString().split("T")[0],
-      createdAt: new Date().toISOString(),
-    };
-    const updatedRecurring = [newRecurring, ...recurringTransactions];
-    setRecurringTransactions(updatedRecurring);
-    saveRecurringTransactions(updatedRecurring);
+  const addRecurringTransaction = async (recurringTransaction) => {
+    if (!user) return;
+
+    try {
+      const newRecurring = {
+        ...recurringTransaction,
+        nextDueDate:
+          recurringTransaction.nextDueDate ||
+          new Date().toISOString().split("T")[0],
+      };
+      
+      await firestoreService.addUserRecurringTransaction(user.uid, newRecurring);
+      // O listener em tempo real atualizará o estado automaticamente
+    } catch (error) {
+      console.error("Erro ao adicionar transação recorrente:", error);
+      throw error;
+    }
   };
 
-  const updateRecurringTransaction = (updatedRecurring) => {
-    const updatedRecurringList = recurringTransactions.map((transaction) =>
-      transaction.id === updatedRecurring.id ? updatedRecurring : transaction
-    );
-    setRecurringTransactions(updatedRecurringList);
-    saveRecurringTransactions(updatedRecurringList);
+  const updateRecurringTransaction = async (updatedRecurring) => {
+    if (!user) return;
+
+    try {
+      const updates = { ...updatedRecurring };
+      delete updates.id; // Remove o id dos updates
+      
+      await firestoreService.updateUserRecurringTransaction(user.uid, updatedRecurring.id, updates);
+      // O listener em tempo real atualizará o estado automaticamente
+    } catch (error) {
+      console.error("Erro ao atualizar transação recorrente:", error);
+      throw error;
+    }
   };
 
-  const deleteRecurringTransaction = (id) => {
-    const updatedRecurring = recurringTransactions.filter(
-      (transaction) => transaction.id !== id
-    );
-    setRecurringTransactions(updatedRecurring);
-    saveRecurringTransactions(updatedRecurring);
+  const deleteRecurringTransaction = async (id) => {
+    if (!user) return;
+
+    try {
+      await firestoreService.deleteUserRecurringTransaction(user.uid, id);
+      // O listener em tempo real atualizará o estado automaticamente
+    } catch (error) {
+      console.error("Erro ao deletar transação recorrente:", error);
+      throw error;
+    }
   };
 
   // Gerar transações baseadas nas recorrentes
-  const generateRecurringTransactions = () => {
-    const today = new Date();
-    const newTransactions = [];
+  const generateRecurringTransactions = async () => {
+    if (!user) return;
 
-    recurringTransactions.forEach((recurring) => {
+    const today = new Date();
+    const transactionsToCreate = [];
+
+    for (const recurring of recurringTransactions) {
       const nextDue = new Date(recurring.nextDueDate);
 
       if (nextDue <= today) {
         // Criar transação baseada na recorrente
         const newTransaction = {
-          id: `${recurring.id}-${Date.now()}`,
           title: recurring.title,
           description: recurring.description,
           amount: recurring.amount,
@@ -258,7 +327,7 @@ export const TransactionsProvider = ({ children }) => {
           recurringId: recurring.id,
         };
 
-        newTransactions.push(newTransaction);
+        transactionsToCreate.push(newTransaction);
 
         // Calcular próxima data
         const nextDate = new Date(nextDue);
@@ -278,17 +347,24 @@ export const TransactionsProvider = ({ children }) => {
         }
 
         // Atualizar próxima data da transação recorrente
-        updateRecurringTransaction({
+        await updateRecurringTransaction({
           ...recurring,
           nextDueDate: nextDate.toISOString().split("T")[0],
         });
       }
-    });
+    }
 
-    if (newTransactions.length > 0) {
-      const updatedTransactions = [...newTransactions, ...transactions];
-      setTransactions(updatedTransactions);
-      saveTransactions(updatedTransactions);
+    // Criar todas as transações em paralelo
+    if (transactionsToCreate.length > 0) {
+      try {
+        await Promise.all(
+          transactionsToCreate.map((transaction) =>
+            firestoreService.addUserTransaction(user.uid, transaction)
+          )
+        );
+      } catch (error) {
+        console.error("Erro ao gerar transações recorrentes:", error);
+      }
     }
   };
 
@@ -315,6 +391,7 @@ export const TransactionsProvider = ({ children }) => {
     transactions,
     recurringTransactions,
     categories,
+    loading,
     addTransaction,
     updateTransaction,
     deleteTransaction,

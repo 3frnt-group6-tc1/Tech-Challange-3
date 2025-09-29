@@ -172,14 +172,18 @@ const TransactionsScreen = ({ navigation }) => {
     setEditModalVisible(true);
   };
 
-  const handleSaveTransaction = (updatedTransaction) => {
-    if (updatedTransaction._delete) {
-      deleteTransaction(updatedTransaction.id);
-    } else {
-      updateTransaction(updatedTransaction);
+  const handleSaveTransaction = async (updatedTransaction) => {
+    try {
+      if (updatedTransaction._delete) {
+        await deleteTransaction(updatedTransaction.id);
+      } else {
+        await updateTransaction(updatedTransaction);
+      }
+      setEditModalVisible(false);
+      setSelectedTransaction(null);
+    } catch (error) {
+      console.error("Erro ao salvar transação:", error);
     }
-    setEditModalVisible(false);
-    setSelectedTransaction(null);
   };
 
   const handleCloseEditModal = () => {
