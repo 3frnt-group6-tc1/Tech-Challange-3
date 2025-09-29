@@ -38,7 +38,7 @@ const CategoriesScreen = ({ navigation }) => {
     setModalVisible(true);
   };
 
-  const handleSaveCategory = () => {
+  const handleSaveCategory = async () => {
     if (!categoryName.trim()) {
       Alert.alert('Erro', 'Nome da categoria é obrigatório');
       return;
@@ -46,10 +46,10 @@ const CategoriesScreen = ({ navigation }) => {
 
     try {
       if (editingCategory) {
-        updateCategory(categoryType, editingCategory.name, categoryName.trim());
+        await updateCategory(categoryType, editingCategory.name, categoryName.trim());
         Alert.alert('Sucesso', 'Categoria atualizada com sucesso!');
       } else {
-        addCategory(categoryType, categoryName.trim());
+        await addCategory(categoryType, categoryName.trim());
         Alert.alert('Sucesso', 'Categoria adicionada com sucesso!');
       }
       setModalVisible(false);
@@ -67,9 +67,9 @@ const CategoriesScreen = ({ navigation }) => {
         {
           text: 'Excluir',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             try {
-              removeCategory(type, name);
+              await removeCategory(type, name);
               Alert.alert('Sucesso', 'Categoria excluída com sucesso!');
             } catch (error) {
               Alert.alert('Erro', error.message);

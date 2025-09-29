@@ -19,6 +19,7 @@ import { useTransactions } from "../contexts/TransactionsContext";
 import { useCurrency } from "../contexts/CurrencyContext";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
+import { Loading } from "../components/Loading";
 import UnifiedTransactionModal from "../components/UnifiedTransactionModal";
 import { formatDate } from "../utils/dateFormatter";
 import { Image } from "expo-image";
@@ -27,7 +28,7 @@ import ImagePreviewModal from "../components/ImagePreviewModal";
 const HomeScreen = ({ navigation }) => {
   const { user } = useAuth();
   const { theme } = useTheme();
-  const { transactions, addTransaction, getTotalByType, getBalance } =
+  const { transactions, loading, addTransaction, getTotalByType, getBalance } =
     useTransactions();
   const { formatCurrency } = useCurrency();
   const [refreshing, setRefreshing] = useState(false);
@@ -57,8 +58,12 @@ const HomeScreen = ({ navigation }) => {
     setModalVisible(true);
   };
 
-  const handleSaveTransaction = (newTransaction) => {
-    addTransaction(newTransaction);
+  const handleSaveTransaction = async (newTransaction) => {
+    try {
+      await addTransaction(newTransaction);
+    } catch (error) {
+      console.error("Erro ao adicionar transação:", error);
+    }
   };
 
   // Função para abrir preview da imagem
@@ -66,6 +71,10 @@ const HomeScreen = ({ navigation }) => {
     setImagePreviewUri(uri);
     setImagePreviewVisible(true);
   };
+
+  if (loading) {
+    return <Loading message="Carregando suas transações..." />;
+  }
 
   return (
     <View
