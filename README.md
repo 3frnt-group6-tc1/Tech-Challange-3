@@ -81,6 +81,18 @@ const firebaseConfig = {
 ```
 
 5. No Console Firebase → **Build → Authentication → Métodos de login** → habilite **E-mail/Senha**.
+6. Ainda no Console → **Build → Firestore Database** → clique em **Criar banco de dados** e escolha o modo *Test* (para desenvolvimento) ou *Production* conforme sua necessidade.
+7. Em **Regras** defina permissões adequadas. Para testes locais você pode manter o exemplo a seguir:
+```js
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
 
 ### 4. Executar o app
 
@@ -90,6 +102,32 @@ npx expo start
 ```
 
 Use um emulador ou o aplicativo **Expo Go** no celular para escanear o QRCode.
+
+## ☁️ Cloud Firestore
+
+A aplicação utiliza o **Cloud Firestore** para armazenar transações, categorias e demais dados de cada usuário.
+
+- Inicialização em `firebase.config.js` por meio de `getFirestore(app)`
+- Camadas de acesso encapsuladas em `services/firestoreService.js`
+- Estrutura sugerida de coleções:
+  - `users/{uid}/transactions`
+  - `users/{uid}/recurringTransactions`
+  - `users/{uid}/settings/categories`
+
+> As operações são ordenadas por `createdAt` para reduzir leituras e possibilitar paginação.
+
+## 💾 Persistência Local (AsyncStorage)
+
+Preferências leves são salvas localmente com `@react-native-async-storage/async-storage`:
+
+| Chave                     | Contexto/Finalidade                                |
+|---------------------------|----------------------------------------------------|
+| `theme`                   | Tema selecionado (claro ou escuro)                 |
+| `@currency_settings_<uid>`| Moeda padrão do usuário                            |
+
+Além disso, o Firebase Auth usa `AsyncStorage` via `initializeAuth` para manter sessões após reiniciar o app.
+
+Não há configuração extra — para limpar dados durante o desenvolvimento basta remover o app/sandbox do emulador ou executar `AsyncStorage.clear()` no console.
 
 ---
 
